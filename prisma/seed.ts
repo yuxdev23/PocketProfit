@@ -44,10 +44,21 @@ function vatPortionSatang(totalSatang: number, ratePct: number): number {
   return Math.round(totalSatang - totalSatang / (1 + ratePct / 100));
 }
 
-// อ้างอิงปฏิทินจาก "วันนี้" ของโจทย์ = 2026-06-02 (เดือนปัจจุบัน = มิ.ย. 2026 แบบกลางเดือน)
-const CUR = { y: 2026, m: 6 }; // เดือนปัจจุบัน (partial)
-const PREV = { y: 2026, m: 5 }; // เดือนก่อน (เต็มเดือน)
-const PREV2 = { y: 2026, m: 4 }; // สองเดือนก่อน (เต็มเดือน)
+// อ้างอิงปฏิทินจาก "วันนี้จริง" (Asia/Bangkok) → ทุกครั้งที่ seed ข้อมูลจะอยู่ที่เดือนปัจจุบัน/วันนี้
+// (เลย demo โชว์กำไรวันนี้ + เดือนนี้ + เทียบเดือนก่อนได้เสมอ ไม่ว่ารันเมื่อไร)
+const _bkkNow = new Date(Date.now() + 7 * 3600_000); // shift → UTC+7
+const TODAY = {
+  y: _bkkNow.getUTCFullYear(),
+  m: _bkkNow.getUTCMonth() + 1,
+  d: _bkkNow.getUTCDate(),
+};
+function monthsAgo(n: number): { y: number; m: number } {
+  const d = new Date(Date.UTC(TODAY.y, TODAY.m - 1 - n, 1));
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 };
+}
+const CUR = { y: TODAY.y, m: TODAY.m }; // เดือนปัจจุบัน (partial ถึงวันนี้)
+const PREV = monthsAgo(1); // เดือนก่อน (เต็มเดือน)
+const PREV2 = monthsAgo(2); // สองเดือนก่อน (เต็มเดือน)
 
 async function main() {
   console.log("เริ่ม seed ข้อมูลร้านนภาพาณิชย์…");
@@ -231,16 +242,23 @@ async function main() {
   });
   await addEntry("", { type: EntryType.expense, cat: "ค่าน้ำค่าไฟ", baht: 1400, date: bkk(CUR.y, CUR.m, 1), note: "ค่าไฟเดือนนี้", vatRate: 7 });
 
-  // วันนี้ (2 มิ.ย.): รายรับ 900 (600+300), รายจ่าย 600 → กำไรวันนี้ = +300
-  await addEntry("", { type: EntryType.income, cat: "ขายหน้าร้าน", baht: 600, date: bkk(CUR.y, CUR.m, 2), note: "ขายเช้า" });
-  await addEntry("", { type: EntryType.income, cat: "ขายของทอด", baht: 300, date: bkk(CUR.y, CUR.m, 2), note: "กล้วยทอดรอบเช้า" });
-  await addEntry("dupDemo", { type: EntryType.expense, cat: "ค่าวัตถุดิบ", baht: 600, date: bkk(CUR.y, CUR.m, 2), note: "แป้ง + น้ำมันทอด" });
+  // ----- รายการ "หลายวันล่าสุด" จนถึงวันนี้ — ให้กราฟรายวัน + hero วันนี้มีข้อมูล -----
+  // วันย้อนหลัง (clamp 1..วันนี้ กันวันที่อนาคต ถ้า seed ต้นเดือน)
+  const dRecent = (back: number): number => Math.max(1, TODAY.d - back);
+  await addEntry("", { type: EntryType.income, cat: "ขายหน้าร้าน", baht: 820, date: bkk(CUR.y, CUR.m, dRecent(7)), note: "ขายหน้าร้าน" });
+  await addEntry("", { type: EntryType.income, cat: "ขายของทอด", baht: 540, date: bkk(CUR.y, CUR.m, dRecent(5)), note: "กล้วยทอด + ปาท่องโก๋" });
+  await addEntry("", { type: EntryType.expense, cat: "ค่าใช้จ่ายจิปาถะ", baht: 250, date: bkk(CUR.y, CUR.m, dRecent(5)), note: "ถุง + ของใช้ในร้าน" });
+  await addEntry("", { type: EntryType.income, cat: "ขายหน้าร้าน", baht: 1100, date: bkk(CUR.y, CUR.m, dRecent(3)), note: "ยอดขายดีช่วงสุดสัปดาห์" });
+  await addEntry("", { type: EntryType.income, cat: "ขายของทอด", baht: 430, date: bkk(CUR.y, CUR.m, dRecent(3)), note: "ของทอดรอบบ่าย" });
+  await addEntry("", { type: EntryType.income, cat: "ขายหน้าร้าน", baht: 760, date: bkk(CUR.y, CUR.m, dRecent(1)), note: "ขายหน้าร้าน" });
 
-  // สรุปยอด มิ.ย. (ตรวจแล้ว):
-  //   รายรับ = 5,400+3,200+3,500 (1 มิ.ย.) + 600+300 (วันนี้) = 13,000 → 65% ของเป้า 20,000
-  //   รายจ่าย = 7,500+1,400 (1 มิ.ย.) + 600 (วันนี้) + 3,000 (ค่าเช่ารายการประจำ 1 มิ.ย.) = 12,500
-  //   ค่าวัตถุดิบ = 7,500 + 600 = 8,100 > งบ 8,000  → เกินงบ ✓
-  //   กำไรสุทธิเดือน = 13,000 − 12,500 = +500 ; กำไรวันนี้ = 900 − 600 = +300 ✓
+  // วันนี้: รายรับ 950 (600+350), รายจ่าย 600 → กำไรวันนี้ = +350
+  await addEntry("", { type: EntryType.income, cat: "ขายหน้าร้าน", baht: 600, date: bkk(CUR.y, CUR.m, TODAY.d), note: "ขายเช้า" });
+  await addEntry("", { type: EntryType.income, cat: "ขายของทอด", baht: 350, date: bkk(CUR.y, CUR.m, TODAY.d), note: "กล้วยทอดรอบเช้า" });
+  await addEntry("dupDemo", { type: EntryType.expense, cat: "ค่าวัตถุดิบ", baht: 600, date: bkk(CUR.y, CUR.m, TODAY.d), note: "แป้ง + น้ำมันทอด" });
+
+  // สรุป CUR (โดยประมาณ): ค่าวัตถุดิบ 7,500+600 = 8,100 > งบ 8,000 → เกินงบ ✓ ;
+  // รายรับสะสม ~16,700 (~83% ของเป้า 20,000) ; กำไรวันนี้ +350 ; กำไรสุทธิเดือนเป็นบวก.
 
   // --- 6) สินค้า + ต้นทุน/ราคาขาย (F5, DoD-5) ------------------------------
   await prisma.product.createMany({

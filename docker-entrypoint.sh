@@ -14,5 +14,13 @@ ln -s /data/uploads /app/uploads
 echo "→ prisma migrate deploy ..."
 bunx prisma migrate deploy
 
+# Optional demo seed — runs only when SEED_DEMO=true (set it in Railway Variables).
+# Safe: prisma/seed.ts only deletes+recreates the single demo account
+# (napha@example.com); other/real accounts are never touched. Idempotent to re-run.
+if [ "${SEED_DEMO:-}" = "true" ]; then
+  echo "→ seeding demo account (SEED_DEMO=true) ..."
+  bun run prisma/seed.ts || echo "⚠ seed failed (continuing to start anyway)"
+fi
+
 echo "→ starting PocketProfit ..."
 exec bun run start
