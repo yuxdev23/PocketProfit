@@ -26,7 +26,7 @@ import { monthDateRange } from "@/lib/dates";
  *  - ข้อความให้กำลังใจ 1 บรรทัด
  * ยอดเงินเป็น "สตางค์" ทั้งหมด แสดงผ่าน AnimatedMoney/formatMoney (คงตรรกะเงินเดิม).
  *
- * income: ทำได้มาก = ดี (เขียว). expense: ใช้น้อยกว่าเพดาน = ดี, เกิน = เตือน (แดง).
+ * income: ทำได้มาก = ดี (เขียว). expense (เพดานรายจ่าย): ใช้ "สีแดงล้วน" ทุกสถานะ (ไม่ใช้เขียว/brand).
  */
 export function GoalCard({
   kind,
@@ -60,16 +60,16 @@ export function GoalCard({
   // ส่วนต่างจากเป้า (สตางค์, ไม่ติดลบ) — ใช้ในบรรทัดสถานะ
   const diff = Math.abs(targetSatang - actualSatang);
 
-  // โทนของวงแหวน/แถบ: ดี = income/brand, เตือน = expense, ใกล้ = brand
-  const ringTone: "income" | "expense" | "brand" = reached
-    ? "income"
-    : over
-      ? "expense"
+  // expense (เพดานรายจ่าย): แดงล้วนทุกสถานะ. income: ถึงเป้า = เขียว, ระหว่างทาง = brand.
+  const ringTone: "income" | "expense" | "brand" = !isIncome
+    ? "expense"
+    : reached
+      ? "income"
       : "brand";
-  const barColor = reached
-    ? "bg-income"
-    : over
-      ? "bg-expense"
+  const barColor = !isIncome
+    ? "bg-expense"
+    : reached
+      ? "bg-income"
       : "bg-brand";
 
   const HeaderIcon: LucideIcon = isIncome ? TrendingUp : TrendingDown;
@@ -122,7 +122,7 @@ export function GoalCard({
   return (
     <Card
       className={cn(
-        isIncome ? "border-income/25" : "border-border/70",
+        isIncome ? "border-income/25" : "border-expense/30",
         reached && "border-income/40",
         over && "border-expense/50",
       )}
@@ -282,8 +282,8 @@ function pickStatus({
   if (near) {
     return {
       pillLabel: "ใกล้ถึง",
-      pillClass: "bg-brand/15 text-brand",
-      softClass: "bg-brand/10 text-brand",
+      pillClass: isIncome ? "bg-brand/15 text-brand" : "bg-expense/12 text-expense",
+      softClass: isIncome ? "bg-brand/10 text-brand" : "bg-expense-soft text-expense",
       helper: isIncome
         ? "อีกนิดเดียวก็ถึงเป้าแล้ว สู้ ๆ ใกล้แล้วจริง ๆ"
         : "ใกล้ถึงเพดานแล้ว ระวังรายจ่ายช่วงท้ายเดือนหน่อยนะ",
@@ -291,11 +291,11 @@ function pickStatus({
     };
   }
 
-  // ปกติ / ยังไปได้สวย → เขียวเบา ๆ
+  // ปกติ: income → เขียวเบา ๆ, expense (เพดานรายจ่าย) → แดงเบา ๆ (ไม่ใช้เขียว)
   return {
     pillLabel: "ตามเป้า",
-    pillClass: "bg-income/12 text-income",
-    softClass: "bg-income-soft text-income",
+    pillClass: isIncome ? "bg-income/12 text-income" : "bg-expense/12 text-expense",
+    softClass: isIncome ? "bg-income-soft text-income" : "bg-expense-soft text-expense",
     helper: isIncome
       ? "กำลังไปได้สวย ค่อย ๆ เก็บไปเรื่อย ๆ เดี๋ยวก็ถึงเป้า"
       : "ยังอยู่ในงบสบาย ๆ คุมแบบนี้ต่อไปได้เลย",
