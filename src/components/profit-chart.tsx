@@ -136,8 +136,8 @@ export function CompareChart({
   ];
 
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full">
+      <ResponsiveContainer width="100%" height={256}>
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={6}>
           <defs>
             <linearGradient id="ppCmpIncome" x1="0" y1="0" x2="0" y2="1">
