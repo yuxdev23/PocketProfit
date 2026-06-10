@@ -1,0 +1,228 @@
+// Prisma schema — SQLite. Domain for "บันทึกค่าใช้จ่ายร้านค้าเล็ก" (โจทย์ 02).
+// Money is stored as integer satang (1 บาท = 100 สตางค์) everywhere — never float baht.
+// occurredAt (business date, Asia/Bangkok) is kept separate from createdAt (insert time)
+// so back-dated records land in the correct day/month for summaries & comparisons.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth scaffold (generic email+password). Ships with the template — KEEP. ---
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+
+  // Domain relations (all per-user, cascade on delete).
+  categories     Category[]
+  entries        Entry[]
+  products       Product[]
+  recurringRules RecurringRule[]
+  goals          Goal[]
+  entryRevisions  EntryRevision[]
+  notes           Note[]
+  categoryBudgets CategoryBudget[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// --- Domain ---------------------------------------------------------------
+
+/// รายรับ หรือ รายจ่าย — ใช้ทั้งกับ Entry, Category, และ RecurringRule
+enum EntryType {
+  income
+  expense
+}
+
+/// หมวดหมู่รายรับ/รายจ่าย (F2). ตั้งงบรายหมวดได้ (monthlyBudgetSatang).
+/// kind แยกหมวดรายรับ/รายจ่าย เพื่อให้ฟอร์มกรองตามประเภทที่เลือก.
+model Category {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  kind                EntryType
+  archived            Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  entries         Entry[]
+  recurringRules  RecurringRule[]
+  categoryBudgets CategoryBudget[]
+
+  // ห้ามมีหมวดชื่อซ้ำ + ประเภทเดียวกัน ต่อผู้ใช้ (N2: "มีหมวดนี้อยู่แล้ว")
+  @@unique([userId, name, kind])
+  @@index([userId])
+}
+
+/// งบประมาณรายหมวด "แยกตามเดือน" (F2.2) — effective-dated + carry-forward.
+/// งบของเดือน M = amountSatang ของแถวที่ month ใหม่สุดที่ <= M (เดือนใหม่ใช้งบเดือนล่าสุดให้เอง);
+/// amountSatang = null = ยกเลิกงบตั้งแต่เดือนนั้น. ตั้ง/แก้ได้เฉพาะเดือนปัจจุบัน (ดูย้อนหลัง = อ่านอย่างเดียว).
+model CategoryBudget {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  month        String // "YYYY-MM" (เวลาไทย) ที่งบนี้เริ่มมีผล
+  amountSatang Int? // งบ (สตางค์); null = ยกเลิกงบตั้งแต่เดือนนี้
+
+  @@unique([categoryId, month])
+  @@index([userId])
+  @@index([categoryId])
+}
+
+/// รายการรายรับ/รายจ่ายแต่ละบิล (F1). หัวใจของแอป.
+/// categoryName เก็บ snapshot ชื่อหมวด ณ เวลาบันทึก (กันชื่อหายถ้าหมวดถูกแก้/ลบ — N2/EDGE).
+/// VAT (N3): amountSatang = ยอดรวม VAT แล้ว; vatAmountSatang = ส่วนที่เป็นภาษี.
+model Entry {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            EntryType
+  categoryId      String?
+  category        Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryName    String // snapshot ชื่อหมวด (denormalized) — ใช้แสดง/สรุปเสมอ
+  amountSatang    Int // ยอดรวม (รวม VAT ถ้ามี) เป็นสตางค์ > 0
+  occurredAt      DateTime // วันที่เกิดรายการ (business date, Asia/Bangkok)
+  note            String?
+  receiptPaths    String? // JSON array ของ path รูปสลิป/ใบเสร็จที่แนบ (หลายรูปได้) (DoD-1, F7)
+  vatRate         Int            @default(0) // เปอร์เซ็นต์ VAT เช่น 7 (0 = ไม่มี VAT) (N3)
+  vatAmountSatang Int            @default(0) // ยอด VAT ที่คิดได้ (สตางค์) (N3)
+  recurringRuleId String? // ถ้ารายการนี้ถูกสร้างจากค่าใช้จ่ายประจำ (F6)
+  recurringRule   RecurringRule? @relation(fields: [recurringRuleId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime? // soft-delete: ไม่ null = ถูกลบแล้ว → ไม่แสดง/ไม่นำมาคำนวณทุกที่
+
+  revisions EntryRevision[]
+
+  @@index([userId])
+  @@index([userId, occurredAt])
+  @@index([categoryId])
+  @@index([recurringRuleId])
+  @@index([userId, deletedAt])
+}
+
+/// ประวัติการแก้ไขรายการ (F7, EDGE-1). บันทึก field ก่อน/หลัง + เหตุผล + เวลา.
+model EntryRevision {
+  id        String   @id @default(cuid())
+  entryId   String
+  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  field     String // ชื่อฟิลด์ที่แก้ เช่น "amountSatang", "categoryName", "occurredAt", "note"
+  oldValue  String // ค่าก่อนแก้ (เก็บเป็น string เพื่อ audit ทุกชนิดฟิลด์)
+  newValue  String // ค่าหลังแก้
+  reason    String // เหตุผล (บังคับ ≥ 3 ตัวอักษร) — EDGE-1
+  createdAt DateTime @default(now())
+
+  @@index([entryId])
+  @@index([userId])
+}
+
+/// สินค้า + ต้นทุน/ราคาขาย (F5, DoD-5). margin% คำนวณ on the fly จาก cost/price.
+/// lowMarginThresholdPct = เกณฑ์เตือนเมื่อ margin ต่ำกว่านี้.
+model Product {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  costSatang            Int // ต้นทุนต่อหน่วย (สตางค์) ≥ 0
+  priceSatang           Int // ราคาขายต่อหน่วย (สตางค์) > 0
+  lowMarginThresholdPct Int      @default(20) // เตือนเมื่อ margin% < ค่านี้
+  archived              Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+/// ค่าใช้จ่าย/รายรับประจำที่เกิดซ้ำทุกเดือน (F6). dayOfMonth = วันที่ของเดือนที่ให้สร้างรายการ.
+/// active=false → หยุดสร้างถาวร; ข้ามเฉพาะเดือน → RecurringSkip (EDGE-3).
+model RecurringRule {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         EntryType @default(expense)
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryName String // snapshot ชื่อหมวด สำหรับรายการที่ถูกสร้าง
+  name         String // ชื่อรายการประจำ เช่น "ค่าเช่าร้าน"
+  amountSatang Int // จำนวนเงินต่อเดือน (สตางค์) > 0
+  dayOfMonth   Int       @default(1) // วันที่ของเดือนที่ให้ลงรายการ (1–28)
+  active       Boolean   @default(true) // false = หยุดสร้างชั่วคราว (pause) — คนละเรื่องกับ deletedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime? // soft-delete: ไม่ null = ถูกลบแล้ว → ไม่แสดง/ไม่สร้างรายการ
+
+  skips            RecurringSkip[]
+  generatedEntries Entry[]
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+/// บันทึกการ "ข้ามเฉพาะเดือน" ของรายการประจำ (EDGE-3). month = "YYYY-MM" (Asia/Bangkok).
+model RecurringSkip {
+  id        String        @id @default(cuid())
+  ruleId    String
+  rule      RecurringRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  month     String // รูปแบบ "YYYY-MM" เช่น "2026-05"
+  createdAt DateTime      @default(now())
+
+  // ข้ามได้ครั้งเดียวต่อเดือนต่อรายการประจำ
+  @@unique([ruleId, month])
+  @@index([ruleId])
+}
+
+/// เป้าหมายต่อเดือน (F4, DoD-4): เป้ารายได้ + เพดานรายจ่าย. month = "YYYY-MM" (Asia/Bangkok).
+model Goal {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month               String // "YYYY-MM"
+  incomeTargetSatang  Int      @default(0) // เป้ารายได้ (สตางค์)
+  expenseTargetSatang Int      @default(0) // เพดานรายจ่าย (สตางค์)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // เป้าหนึ่งชุดต่อผู้ใช้ต่อเดือน
+  @@unique([userId, month])
+  @@index([userId])
+}
+
+/// โน้ต/บันทึกย่อของผู้ใช้ — "1 โน้ตต่อขอบเขต" (รวม / รายวัน / รายเดือน).
+/// scope: "global" (รวม) | "daily" (ของแต่ละวัน) | "monthly" (ของแต่ละเดือน).
+/// scopeKey: global -> "" ; daily -> "YYYY-MM-DD" ; monthly -> "YYYY-MM" (เวลาไทย).
+/// @@unique([userId, scope, scopeKey]) บังคับว่ามีได้โน้ตเดียวต่อวัน/เดือน/รวม.
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope     String // "global" | "daily" | "monthly"
+  scopeKey  String // "" | "YYYY-MM-DD" | "YYYY-MM"
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft-delete: ไม่ null = ถูกลบแล้ว → ไม่แสดง (โน้ตว่าง = ลบ)
+
+  @@unique([userId, scope, scopeKey])
+  @@index([userId])
+}

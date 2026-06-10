@@ -1,0 +1,67 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState } from "react";
+import { Loader2 } from "lucide-react";
+
+import { login, type AuthState } from "@/app/(auth)/actions";
+import { AuthShell } from "@/components/auth-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const initialState: AuthState = {};
+
+export default function LoginPage() {
+  const [state, formAction, pending] = useActionState(login, initialState);
+
+  return (
+    <AuthShell title="เข้าสู่ระบบ" subtitle="กรอกอีเมลและรหัสผ่านเพื่อเข้าใช้งาน">
+      <form action={formAction} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">อีเมล</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="h-12"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">รหัสผ่าน</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            className="h-12"
+            required
+          />
+        </div>
+        {state.error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {state.error}
+          </p>
+        ) : null}
+        <Button type="submit" className="h-12 w-full text-base" disabled={pending}>
+          {pending ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" /> กำลังเข้าสู่ระบบ…
+            </>
+          ) : (
+            "เข้าสู่ระบบ"
+          )}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          ยังไม่มีบัญชี?{" "}
+          <Link href="/signup" className="font-semibold text-brand underline-offset-4 hover:underline">
+            สมัครสมาชิก
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
+  );
+}

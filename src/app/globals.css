@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ───────────────────────── PocketProfit — Light (fresh · friendly · emerald) ─────────────────────────
+       Clean mint-white, vivid emerald accent (= money/profit), fresh income green / clean rose.
+       Emerald brand hue ~158 sits a touch teal-ward of income green (~142) for a subtle layer.
+       HSL triples to match tailwind.config `hsl(var(--x))`. */
+    --background: 150 16% 99%; /* clean mint-white ~#FAFEFC */
+    --foreground: 160 10% 13%; /* crisp green-ink near-black ~#1E2421 */
+    --card: 0 0% 100%;
+    --card-foreground: 160 10% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 10% 13%;
+    --primary: 158 82% 36%; /* vivid emerald ~#10A86F */
+    --primary-foreground: 0 0% 100%; /* white on emerald */
+    --secondary: 150 22% 96%; /* soft mint-grey surface */
+    --secondary-foreground: 160 10% 22%;
+    --muted: 150 20% 96%;
+    --muted-foreground: 155 7% 44%; /* green-grey (AA on white) */
+    --accent: 158 50% 94%; /* soft emerald chip */
+    --accent-foreground: 160 62% 25%; /* deep emerald text on soft emerald */
+    --destructive: 350 80% 53%; /* clean rose */
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 16% 91%; /* thin mint border ~#E3EBE7 */
+    --input: 150 16% 91%;
+    --ring: 158 82% 36%; /* emerald focus ring */
+    --chart-1: 142 72% 37%; /* income green */
+    --chart-2: 158 82% 36%; /* emerald brand */
+    --chart-3: 158 58% 64%; /* light emerald */
+    --chart-4: 155 8% 55%; /* green-grey */
+    --chart-5: 160 12% 26%; /* near-black */
+    --radius: 0.75rem;
+
+    /* semantic — income / expense / brand */
+    --income: 142 72% 37%; /* fresh green ~#1AA34C — รายรับ/กำไร */
+    --income-foreground: 0 0% 100%;
+    --income-soft: 142 52% 95%; /* ~#E7F8EE */
+    --expense: 350 89% 60%; /* clean rose ~#F43F5E — รายจ่าย/ขาดทุน */
+    --expense-foreground: 0 0% 100%;
+    --expense-soft: 350 100% 96%; /* ~#FFE9ED */
+    --warning: 35 92% 42%; /* amber ~#CD7A0A — เตือน/ใกล้เต็มงบ (ใช้แทนเขียวบนหน้ารายจ่าย) */
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 40 90% 94%; /* ~#FEF3DD pale amber */
+    --accent-brand: 158 82% 36%; /* vivid emerald — CTA/progress/brand */
+    --accent-brand-foreground: 0 0% 100%;
+    --accent-brand-soft: 158 55% 93%; /* ~#E2F5EE soft emerald */
+    --neutral-strong: 160 10% 13%; /* ตัวเลขทั่วไป/หัวข้อ */
+
+    /* flat soft elevation (cool-green neutral, very low-opacity) */
+    --shadow-color: 158 24% 22%;
+  }
+
+  .dark {
+    /* ───────────────────────── PocketProfit — Dark (deep green-charcoal · emerald) ───────────────────────── */
+    --background: 160 14% 8%; /* deep green-charcoal ~#111714 */
+    --foreground: 150 10% 92%; /* soft mint-white ~#E8EEEB */
+    --card: 160 12% 12%; /* green-charcoal card ~#1A211D */
+    --card-foreground: 150 10% 92%;
+    --popover: 160 12% 12%;
+    --popover-foreground: 150 10% 92%;
+    --primary: 156 70% 50%; /* bright emerald ~#26C98D */
+    --primary-foreground: 160 45% 9%;
+    --secondary: 160 10% 17%;
+    --secondary-foreground: 150 10% 90%;
+    --muted: 160 10% 17%;
+    --muted-foreground: 150 7% 64%; /* green-grey (AA on dark) */
+    --accent: 160 28% 20%; /* soft emerald chip (dark) */
+    --accent-foreground: 156 64% 80%;
+    --destructive: 350 82% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 160 10% 21%; /* subtle green border ~#2E3833 */
+    --input: 160 10% 21%;
+    --ring: 156 70% 50%;
+    --chart-1: 142 60% 50%;
+    --chart-2: 156 70% 50%;
+    --chart-3: 156 58% 66%;
+    --chart-4: 150 7% 62%;
+    --chart-5: 150 10% 88%;
+
+    --income: 142 60% 48%; /* fresh green for dark */
+    --income-foreground: 0 0% 100%; /* white on solid income badge (match light + destructive) */
+    --income-soft: 142 35% 16%;
+    --expense: 350 85% 65%;
+    --expense-foreground: 0 0% 100%; /* white on solid expense badge (เกินงบ/ขาดทุน) */
+    --expense-soft: 350 30% 18%;
+    --warning: 38 88% 48%; /* amber for dark */
+    --warning-foreground: 0 0% 100%;
+    --warning-soft: 38 35% 17%;
+    --accent-brand: 156 70% 50%;
+    --accent-brand-foreground: 160 45% 9%;
+    --accent-brand-soft: 160 28% 22%;
+    --neutral-strong: 150 10% 91%;
+
+    --shadow-color: 0 0% 0%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* ตัวเลขเงิน/เปอร์เซ็นต์ทั้งแอป — ความกว้างตัวเลขคงที่ */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* ── Flat soft elevation (clean, layered, very low-opacity) ── */
+  .shadow-warm-sm {
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.05),
+      0 1px 3px -1px hsl(var(--shadow-color) / 0.04);
+  }
+  .shadow-warm {
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.06),
+      0 4px 12px -6px hsl(var(--shadow-color) / 0.08);
+  }
+  /* elevated lift — focal hero card floats above the other (flat) cards */
+  .shadow-warm-glow {
+    box-shadow:
+      0 2px 6px -2px hsl(var(--shadow-color) / 0.1),
+      0 14px 32px -10px hsl(var(--shadow-color) / 0.18);
+  }
+}
+
+/* ── Micro-interaction keyframes (respect prefers-reduced-motion) ── */
+@layer utilities {
+  @keyframes warm-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-warm-rise {
+    animation: warm-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .animate-warm-rise,
+  .animate-fade-slide-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── Login entrance: "แสงอรุณ + กำไรพุ่ง" (transform/opacity เท่านั้น = ลื่น 60fps) ── */
+@layer utilities {
+  /* แสงอรุณเรืองขึ้นหลังโลโก้ */
+  @keyframes glow-in {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.82); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .animate-glow-in {
+    animation: glow-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* รัศมีโลโก้กางออกจากจุดศูนย์กลาง (ใส่ animation-delay รายเส้น → ไล่รอบวง) */
+  @keyframes ray-in {
+    from { opacity: 0; transform: scale(0.2); }
+    to   { opacity: 0.9; transform: scale(1); }
+  }
+  .animate-ray-in {
+    transform-box: view-box;
+    transform-origin: 16px 16px;
+    animation: ray-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  /* ฿ เด้งเข้ากลางโลโก้ (มีดีดเล็กน้อย) */
+  @keyframes baht-pop {
+    0%   { opacity: 0; transform: scale(0.2); }
+    65%  { opacity: 1; transform: scale(1.18); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .animate-baht-pop {
+    transform-box: view-box;
+    transform-origin: 16px 16.5px;
+    animation: baht-pop 0.5s cubic-bezier(0.34, 1.56, 0.4, 1) 0.52s backwards;
+  }
+
+  /* วาบทองพาดผ่านโลโก้ (sheen) — กวาดครั้งเดียว */
+  @keyframes logo-shimmer {
+    0%, 14% { opacity: 0; transform: translateX(-130%); }
+    38%     { opacity: 1; }
+    62%     { opacity: 0; transform: translateX(130%); }
+    100%    { opacity: 0; transform: translateX(130%); }
+  }
+  .animate-logo-shimmer {
+    animation: logo-shimmer 1.8s ease-in-out 0.62s both;
+  }
+
+  /* ฿ ลอยขึ้นเบา ๆ เป็นฉากหลัง (วน) — opacity/duration/delay กำหนดต่อชิ้นผ่าน CSS var */
+  @keyframes coin-float {
+    0%   { opacity: 0; transform: translateY(16px) scale(0.85); }
+    20%  { opacity: var(--coin-opacity, 0.4); }
+    80%  { opacity: var(--coin-opacity, 0.4); }
+    100% { opacity: 0; transform: translateY(-150px) scale(1.05); }
+  }
+  .animate-coin-float {
+    animation: coin-float var(--coin-duration, 7s) ease-in-out var(--coin-delay, 0s) infinite;
+  }
+
+  /* แท็กไลน์ค่อย ๆ ปรากฏทีละพยางค์ ซ้าย→ขวา (ใส่ animation-delay ต่อ span) */
+  @keyframes syllable-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .animate-syllable-in {
+    animation: syllable-in 0.45s ease both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* ปิด motion: ให้ผลลัพธ์สุดท้ายมองเห็นได้ครบ ไม่มีการเคลื่อนไหว */
+  .animate-glow-in,
+  .animate-ray-in,
+  .animate-baht-pop {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .animate-ray-in,
+  .animate-baht-pop {
+    transform: none !important;
+  }
+  .animate-logo-shimmer,
+  .animate-coin-float {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .animate-syllable-in {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
