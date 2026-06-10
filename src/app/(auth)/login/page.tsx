@@ -25,6 +25,7 @@ export default function LoginPage() {
             name="email"
             type="email"
             autoComplete="email"
+            autoFocus
             placeholder="you@example.com"
             className="h-12"
             required
