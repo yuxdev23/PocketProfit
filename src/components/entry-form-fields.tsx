@@ -200,7 +200,7 @@ export function EntryFields({
                 autoFocus
                 placeholder="0.00"
                 aria-label="จำนวนเงิน (บาท)"
-                className="h-16 rounded-2xl border-brand/30 bg-brand/5 pr-16 text-center text-3xl font-bold tabular-nums focus-visible:bg-background"
+                className="h-16 rounded-2xl border-brand/30 bg-brand/5 pr-16 text-center text-4xl font-bold tabular-nums focus-visible:bg-background md:text-4xl"
                 aria-invalid={!!errors.amount}
                 ref={field.ref}
                 name={field.name}
